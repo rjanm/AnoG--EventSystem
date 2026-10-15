@@ -52,7 +52,6 @@ const Navbar = () => {
     isAuthenticated && role === "attendee";
 
   const canManageEvents = isAdmin || isOrganizer;
-
   const isAdminPage = isAdmin;
 
   const displayName =
@@ -63,7 +62,7 @@ const Navbar = () => {
   const initials = displayName
     .split(/\s+/)
     .slice(0, 2)
-    .map(part => part.charAt(0))
+    .map((part) => part.charAt(0))
     .join("")
     .toUpperCase();
 
@@ -71,8 +70,8 @@ const Navbar = () => {
     role === "admin"
       ? "Administrator"
       : role === "organizer"
-      ? "Organizer"
-      : "Attendee";
+        ? "Organizer"
+        : "Attendee";
 
   const links = [
     {
@@ -99,7 +98,7 @@ const Navbar = () => {
       icon: LayoutDashboard,
       visible: isOrganizer
     }
-  ].filter(link => link.visible);
+  ].filter((link) => link.visible);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -109,7 +108,7 @@ const Navbar = () => {
   useEffect(() => {
     if (!menuOpen && !profileMenuOpen) return;
 
-    const handleEscape = event => {
+    const handleEscape = (event) => {
       if (event.key === "Escape") {
         setMenuOpen(false);
         setProfileMenuOpen(false);
@@ -163,10 +162,12 @@ const Navbar = () => {
             onClick={closeMenus}
             className="group flex shrink-0 items-center gap-3"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#173B2F] text-white shadow-sm transition duration-300 group-hover:-rotate-3">
-              <span className="text-xl font-black tracking-tight">
-                G
-              </span>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#173B2F] shadow-sm transition duration-300 group-hover:-rotate-3">
+              <img
+                src="/logo.png"
+                alt="ANO G? Logo"
+                className="h-full w-full object-cover"
+              />
             </div>
 
             <div>
@@ -187,7 +188,7 @@ const Navbar = () => {
 
           {!isAdminPage && (
             <div className="hidden items-center gap-6 lg:flex xl:gap-8">
-              {links.map(link => {
+              {links.map((link) => {
                 const Icon = link.icon;
 
                 return (
@@ -237,7 +238,7 @@ const Navbar = () => {
                   type="button"
                   onClick={() =>
                     setProfileMenuOpen(
-                      previous => !previous
+                      (previous) => !previous
                     )
                   }
                   aria-expanded={profileMenuOpen}
@@ -406,7 +407,7 @@ const Navbar = () => {
             <button
               type="button"
               onClick={() =>
-                setMenuOpen(previous => !previous)
+                setMenuOpen((previous) => !previous)
               }
               aria-label={
                 menuOpen
@@ -462,7 +463,7 @@ const Navbar = () => {
             </p>
 
             <div className="space-y-1">
-              {links.map(link => {
+              {links.map((link) => {
                 const Icon = link.icon;
 
                 return (
