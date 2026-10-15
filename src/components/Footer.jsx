@@ -2,7 +2,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  CalendarDays,
   Mail,
   MapPin,
   Heart
@@ -17,8 +16,12 @@ export default function Footer() {
             to="/"
             className="flex items-center gap-3"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#4E9C70]">
-              <CalendarDays size={23} />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#173B2F]">
+              <img
+                src="/logo.png"
+                alt="ANO G? Logo"
+                className="h-full w-full object-cover"
+              />
             </div>
 
             <span className="text-2xl font-black">
