@@ -1,650 +1,807 @@
-import React from "react";
-import { Link } from "react-router-dom";
+
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
   CalendarDays,
-  CheckCircle2,
-  ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
+  Compass,
+  MapPin,
+  Search,
+  Sparkles,
   Ticket,
   Users,
-  Wallet,
+  Music2,
+  Palette,
+  GraduationCap,
+  Dumbbell,
+  Utensils,
+  BriefcaseBusiness,
+  RefreshCw
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
-const Home = () => {
-  const modules = [
-    {
-      number: "01",
-      title: "Registration",
-      description:
-        "Create and organize events while managing attendee registration.",
-      icon: Ticket,
-      path: "/registration",
-    },
-    {
-      number: "02",
-      title: "Security",
-      description:
-        "Validate credentials and check password strength with clear rules.",
-      icon: ShieldCheck,
-      path: "/password",
-    },
-    {
-      number: "03",
-      title: "Budget",
-      description:
-        "Plan event expenses and calculate costs using tiered event rates.",
-      icon: Wallet,
-      path: "/budget",
-    },
-    {
-      number: "04",
-      title: "Attendance",
-      description:
-        "Track arrivals and determine attendee status during your event.",
-      icon: Users,
-      path: "/attendance",
-    },
-  ];
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/$/, "");
+
+const CATEGORIES = [
+  { name: "All", icon: Compass },
+  { name: "Music", icon: Music2 },
+  { name: "Arts", icon: Palette },
+  { name: "Sports", icon: Dumbbell },
+  { name: "Food", icon: Utensils },
+  { name: "Education", icon: GraduationCap },
+  { name: "Business", icon: BriefcaseBusiness },
+  { name: "Community", icon: Users }
+];
+
+const dateOf = value => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const dateLabel = value =>
+  dateOf(value)?.toLocaleDateString("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  }) || "Date TBA";
+
+const monthLabel = value =>
+  dateOf(value)
+    ?.toLocaleDateString("en-PH", { month: "short" })
+    .toUpperCase() || "TBA";
+
+const dayLabel = value => dateOf(value)?.getDate() || "—";
+
+const priceLabel = event =>
+  event.isFree
+    ? "FREE"
+    : `₱${Number(event.ticketPrice || 0).toLocaleString("en-PH")}`;
+
+const eventLocation = event =>
+  event.venue || event.location || "Venue to be announced";
+
+function Poster({ event, className = "", shade = false }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [event?._id, event?.image]);
 
   return (
-    <div className="bg-[#F2F5EF] text-[#07140F]">
+    <div className={`relative overflow-hidden bg-[#234A38] ${className}`}>
+      {event?.image && !failed ? (
+        <img
+          src={event.image}
+          alt={event.title || "Event poster"}
+          onError={() => setFailed(true)}
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+      ) : (
+        <div className="flex h-full w-full flex-col items-center justify-center bg-[radial-gradient(ellipse_at_70%_30%,#4D906B_0%,#204C39_50%,#102C23_100%)]">
+          <Sparkles className="text-[#B4E3C2]" size={48} />
+          <span className="mt-4 text-[10px] font-bold tracking-[.3em] text-white/50">
+            ANO G? / LIVE
+          </span>
+        </div>
+      )}
 
-      {/* =========================================================
-          HERO
-      ========================================================= */}
-      <section className="relative overflow-hidden border-b border-[#07140F]/10">
+      {shade && (
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#091B15]/95 via-[#091B15]/30 to-transparent" />
+      )}
+    </div>
+  );
+}
 
-        {/* Large Background Typography */}
-        <div className="pointer-events-none absolute -left-[3vw] top-[9vh] select-none text-[30vw] font-black uppercase leading-[0.68] tracking-[-0.12em] text-[#0D3B2E]/[0.045]">
-          ANO
-          <br />
-          G
+function GlassSkeleton({ featured = false }) {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-[26px] border border-white/20 bg-white/10 backdrop-blur-xl ${
+        featured ? "h-[430px] sm:h-[560px]" : "h-[365px]"
+      }`}
+    >
+      <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-white/5 via-white/15 to-white/5" />
+
+      <div className="absolute bottom-6 left-6 right-6 space-y-3">
+        <div className="h-3 w-24 animate-pulse rounded-full bg-white/25" />
+        <div className="h-8 w-3/4 animate-pulse rounded-lg bg-white/25" />
+        <div className="h-4 w-1/2 animate-pulse rounded-lg bg-white/20" />
+      </div>
+    </div>
+  );
+}
+
+function EventTile({ event, index }) {
+  return (
+    <Link
+      to={`/events/${event._id}`}
+      className="group block min-w-0 overflow-hidden rounded-[22px] border border-[#E3E9E0] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(18,48,35,.12)]"
+    >
+      <div className="relative h-52 overflow-hidden sm:h-56">
+        <Poster event={event} className="h-full w-full" />
+
+        <span className="absolute left-4 top-4 rounded-lg bg-white/95 px-3 py-2 text-center shadow-sm backdrop-blur">
+          <span className="block text-[10px] font-black uppercase text-[#397B53]">
+            {monthLabel(event.startDate)}
+          </span>
+          <span className="block text-xl font-black leading-none text-[#153C2B]">
+            {dayLabel(event.startDate)}
+          </span>
+        </span>
+
+        <span className="absolute bottom-4 right-4 rounded-full bg-[#143B2B] px-3 py-1.5 text-[11px] font-extrabold text-white">
+          {priceLabel(event)}
+        </span>
+      </div>
+
+      <div className="p-5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-[10px] font-extrabold uppercase tracking-[.15em] text-[#46845D]">
+            {event.category || "Experience"}
+          </span>
+
+          <span className="text-[10px] font-bold text-[#A4B0A3]">
+            {String(index + 1).padStart(2, "0")}
+          </span>
         </div>
 
-        {/* Technical Lines */}
-        <div className="pointer-events-none absolute left-[8vw] top-0 hidden h-full w-px bg-[#07140F]/[0.07] lg:block" />
+        <h3 className="mt-3 line-clamp-2 min-h-[56px] text-xl font-black leading-7 tracking-tight text-[#173B2F]">
+          {event.title}
+        </h3>
 
-        <div className="pointer-events-none absolute left-0 right-0 top-[43%] h-px bg-[#07140F]/[0.07]" />
+        <p className="mt-3 flex items-center gap-2 truncate text-xs text-[#7D8F80]">
+          <MapPin size={14} className="shrink-0" />
+          {eventLocation(event)}
+        </p>
 
-        <div className="relative mx-auto max-w-[1600px] px-5 pb-20 pt-8 sm:px-8 md:px-[7vw] md:pt-12 lg:px-[8vw] lg:pb-28">
+        <div className="mt-5 flex items-center justify-between border-t border-[#E8EEE6] pt-4">
+          <span className="text-xs font-bold text-[#173B2F]">
+            {dateLabel(event.startDate)}
+          </span>
 
-          {/* Top Metadata */}
-          <div className="flex items-center justify-between">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF3E9] text-[#245D3C] transition group-hover:bg-[#173B2F] group-hover:text-white">
+            <ArrowUpRight size={17} />
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
 
-            <div className="flex items-center gap-3">
-              <span className="h-px w-10 bg-[#0D3B2E]" />
+export default function Home() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-              <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[#07140F]/50">
-                Ano G
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [category, setCategory] = useState("All");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [retry, setRetry] = useState(0);
+
+  const role =
+    user?.role === "user"
+      ? "attendee"
+      : user?.role || "attendee";
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadEvents = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await fetch(`${API_URL}/api/events/public`, {
+          signal: controller.signal
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.success === false) {
+          throw new Error(data.message || "Unable to load events.");
+        }
+
+        setEvents(
+          Array.isArray(data)
+            ? data
+            : Array.isArray(data.events)
+              ? data.events
+              : []
+        );
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          setError(err.message || "Unable to load events.");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadEvents();
+
+    return () => controller.abort();
+  }, [retry]);
+
+  const upcoming = useMemo(() => {
+    return events
+      .filter(event => {
+        const date = dateOf(event.startDate);
+
+        return (
+          event.status === "published" &&
+          !event.isDeleted &&
+          date &&
+          date.getTime() >= Date.now()
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.startDate).getTime() -
+          new Date(b.startDate).getTime()
+      );
+  }, [events]);
+
+  const featured = upcoming[0] || null;
+
+  const filtered = useMemo(() => {
+    if (category === "All") return upcoming;
+
+    return upcoming.filter(event =>
+      String(event.category || "")
+        .toLowerCase()
+        .includes(category.toLowerCase())
+    );
+  }, [upcoming, category]);
+
+  const pages = Math.max(1, Math.ceil(filtered.length / 3));
+  const visible = filtered.slice(page * 3, page * 3 + 3);
+
+  const handleSearch = event => {
+    event.preventDefault();
+
+    navigate(
+      query.trim()
+        ? `/events?search=${encodeURIComponent(query.trim())}`
+        : "/events"
+    );
+  };
+
+  const organizerPath =
+    role === "organizer"
+      ? "/organizer/events/create"
+      : role === "admin"
+        ? "/admin/events"
+        : user
+          ? "/apply-organizer"
+          : "/login";
+
+  const organizerLabel =
+    role === "organizer"
+      ? "Create an Event"
+      : role === "admin"
+        ? "Manage Events"
+        : user
+          ? "Apply as Organizer"
+          : "Get Started";
+
+  return (
+    <div className="min-h-screen bg-[#F5F5EF] text-[#153A2B]">
+      {/* HERO */}
+      <section className="relative overflow-hidden bg-[#102E23] text-white">
+        <div className="pointer-events-none absolute -right-40 top-0 h-[650px] w-[650px] rounded-full bg-[#2C6C4A]/25 blur-[100px]" />
+
+        <div className="relative mx-auto max-w-[1320px] px-5 pb-16 pt-10 sm:px-8 lg:pb-24 lg:pt-16">
+          <div className="mb-12 flex flex-wrap items-center justify-between gap-4 border-b border-white/15 pb-5">
+            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.25em] text-[#9CD2AC]">
+              <span className="h-2 w-2 rounded-full bg-[#91D5A8]" />
+              THE CITY IS CALLING
+            </span>
+
+            <span className="text-[10px] font-bold uppercase tracking-[.2em] text-white/35">
+              Discover / Connect / Experience
+            </span>
+          </div>
+
+          <div className="grid items-center gap-12 lg:grid-cols-[.9fr_1.1fr] lg:gap-16">
+            <div>
+              <div className="mb-6 flex items-center gap-3">
+                <span className="h-px w-9 bg-[#8AD6A1]" />
+                <span className="text-[11px] font-bold uppercase tracking-[.2em] text-[#9CD2AC]">
+                  Your event discovery space
+                </span>
+              </div>
+
+              <h1 className="text-[clamp(4rem,8.5vw,8.5rem)] font-black leading-[.86] tracking-[-.09em]">
+                GO
+                <br />
+                <span className="text-[#A8D8B2]">WHERE</span>
+                <br />
+                IT HAPPENS<span className="text-[#9CD2AC]">.</span>
+              </h1>
+
+              <p className="mt-8 max-w-md text-sm leading-8 text-white/60 sm:text-base">
+                The best moments don't happen on your feed. Find concerts,
+                creative spaces, meetups, and experiences worth showing up for.
               </p>
+
+              <form
+                onSubmit={handleSearch}
+                className="mt-9 flex max-w-lg items-center gap-2 rounded-2xl border border-white/20 bg-white/10 p-2 backdrop-blur-xl"
+              >
+                <Search
+                  size={19}
+                  className="ml-3 shrink-0 text-[#A6D9B6]"
+                />
+
+                <input
+                  value={query}
+                  onChange={event => setQuery(event.target.value)}
+                  placeholder="What are you in the mood for?"
+                  className="min-w-0 flex-1 bg-transparent px-2 py-3 text-sm text-white outline-none placeholder:text-white/45"
+                />
+
+                <button
+                  type="submit"
+                  className="flex shrink-0 items-center gap-2 rounded-xl bg-[#B9E7BC] px-4 py-3 text-xs font-black text-[#123525] transition hover:bg-white"
+                >
+                  Find it
+                  <ArrowRight size={15} />
+                </button>
+              </form>
+
+              <div className="mt-7 flex flex-wrap items-center gap-5">
+                <Link
+                  to="/events"
+                  className="inline-flex items-center gap-2 text-xs font-black text-[#B8E6C0] hover:text-white"
+                >
+                  Explore all events
+                  <ArrowUpRight size={16} />
+                </Link>
+
+                <span className="h-4 w-px bg-white/20" />
+
+                <span className="text-xs text-white/40">
+                  Made for people who show up.
+                </span>
+              </div>
             </div>
 
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#07140F]/35">
-              Event System / 01
+            <div className="relative">
+              <div className="absolute -right-3 -top-3 z-10 hidden rounded-full border border-white/30 bg-[#173B2F]/80 px-5 py-3 text-[10px] font-black uppercase tracking-[.2em] text-[#B9E7BC] backdrop-blur-xl sm:block">
+                THE NEXT BIG THING ↗
+              </div>
+
+              {loading ? (
+                <GlassSkeleton featured />
+              ) : featured ? (
+                <Link
+                  to={`/events/${featured._id}`}
+                  className="group relative block h-[430px] overflow-hidden rounded-[26px] border border-white/20 shadow-[0_30px_90px_rgba(0,0,0,.3)] sm:h-[560px]"
+                >
+                  <Poster
+                    event={featured}
+                    className="absolute inset-0"
+                    shade
+                  />
+
+                  <div className="absolute left-6 top-6 rounded-full border border-white/30 bg-black/25 px-4 py-2 text-[10px] font-black uppercase tracking-[.15em] backdrop-blur-xl">
+                    Featured Event
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 right-0 p-7 sm:p-10">
+                    <span className="text-[11px] font-black uppercase tracking-[.2em] text-[#A8E6BB]">
+                      {featured.category || "Upcoming Experience"}
+                    </span>
+
+                    <h2 className="mt-3 max-w-lg text-3xl font-black leading-tight tracking-[-.05em] sm:text-5xl">
+                      {featured.title}
+                    </h2>
+
+                    <div className="mt-5 flex flex-wrap gap-4 text-xs text-white/75">
+                      <span className="inline-flex items-center gap-2">
+                        <CalendarDays size={15} />
+                        {dateLabel(featured.startDate)}
+                      </span>
+
+                      <span className="inline-flex items-center gap-2">
+                        <MapPin size={15} />
+                        {eventLocation(featured)}
+                      </span>
+                    </div>
+
+                    <div className="mt-7 flex items-center justify-between border-t border-white/25 pt-5">
+                      <span className="text-sm font-black">
+                        {priceLabel(featured)}
+                      </span>
+
+                      <span className="inline-flex items-center gap-2 text-xs font-black">
+                        See the experience
+                        <ArrowUpRight size={17} />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ) : (
+                <div className="flex h-[430px] flex-col justify-between overflow-hidden rounded-[26px] border border-white/15 bg-[radial-gradient(circle_at_80%_20%,#4A8560,#173B2F_60%,#102E23)] p-8 sm:h-[560px]">
+                  <span className="text-[10px] font-black uppercase tracking-[.2em] text-[#B9E7BC]">
+                    ANO G? / EVENT DISCOVERY
+                  </span>
+
+                  <div>
+                    <Sparkles
+                      size={44}
+                      className="text-[#B9E7BC]"
+                    />
+
+                    <h2 className="mt-6 text-4xl font-black leading-tight tracking-tight sm:text-5xl">
+                      Something good
+                      <br />
+                      is coming.
+                    </h2>
+
+                    <p className="mt-4 max-w-sm text-sm leading-7 text-white/60">
+                      New events will appear here when organizers publish them.
+                    </p>
+
+                    <Link
+                      to="/events"
+                      className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#B9E7BC] px-5 py-3 text-xs font-black text-[#123525]"
+                    >
+                      Explore Events
+                      <ArrowRight size={16} />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* EVENT LINEUP */}
+      <section className="mx-auto max-w-[1320px] px-5 py-20 sm:px-8 lg:py-24">
+        <div className="flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.23em] text-[#4B9162]">
+              THE UPCOMING LINEUP / 01
+            </p>
+
+            <h2 className="mt-4 text-4xl font-black tracking-[-.06em] sm:text-5xl">
+              Make some <span className="text-[#559C6B]">plans.</span>
+            </h2>
+
+            <p className="mt-3 text-sm text-[#7B8B7D]">
+              The next experiences worth adding to your calendar.
             </p>
           </div>
 
-          {/* Main Hero */}
-          <div className="mt-16 grid items-end gap-12 lg:grid-cols-[1fr_0.72fr] lg:gap-20">
-
-            {/* Hero Text */}
-            <div>
-
-              <p className="mb-6 text-[10px] font-black uppercase tracking-[0.35em] text-[#07140F]/40">
-                Modern Event Management
-              </p>
-
-              <h1 className="max-w-5xl text-[clamp(4.5rem,11vw,11rem)] font-black uppercase leading-[0.73] tracking-[-0.095em]">
-                Plan
-                <br />
-                The
-                <br />
-                Event.
-              </h1>
-
-              <div className="mt-10 flex max-w-xl items-start gap-5">
-
-                <span className="mt-2 h-px w-12 shrink-0 bg-[#0D3B2E]" />
-
-                <p className="text-sm font-medium leading-7 text-[#07140F]/55 md:text-base">
-                  Ano G is a modern event management system designed to
-                  bring registration, security, budgeting, and attendance
-                  into one organized workspace.
-                </p>
-
-              </div>
-
-              {/* CTA */}
-              <div className="mt-10 flex flex-wrap items-center gap-4">
-
-                <Link
-                  to="/registration"
-                  className="group inline-flex items-center gap-3 bg-[#0D3B2E] px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all duration-300 hover:bg-[#12513E]"
-                >
-                  Start an Event
-
-                  <ArrowRight
-                    size={16}
-                    className="transition-transform duration-300 group-hover:translate-x-1"
-                  />
-                </Link>
-
-                <Link
-                  to="/login"
-                  className="inline-flex items-center gap-3 border border-[#07140F]/15 px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#07140F] transition-all duration-300 hover:border-[#0D3B2E] hover:bg-white"
-                >
-                  Sign In
-                </Link>
-
-              </div>
-            </div>
-
-            {/* Hero Event Preview */}
-            <div className="relative">
-
-              {/* Corner Marks */}
-              <div className="absolute -right-3 -top-3 h-10 w-10 border-r border-t border-[#0D3B2E]/40" />
-
-              <div className="absolute -bottom-3 -left-3 h-10 w-10 border-b border-l border-[#0D3B2E]/40" />
-
-              <div className="relative overflow-hidden bg-[#0D3B2E] text-white">
-
-                {/* Preview Header */}
-                <div className="border-b border-white/10 px-6 py-5">
-
-                  <div className="flex items-center justify-between">
-
-                    <div className="flex items-center gap-3">
-
-                      <CalendarDays
-                        size={18}
-                        className="text-[#52B788]"
-                      />
-
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/50">
-                        Upcoming Event
-                      </p>
-
-                    </div>
-
-                    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-white/30">
-                      01—26
-                    </p>
-
-                  </div>
-                </div>
-
-                {/* Event */}
-                <div className="px-6 pb-8 pt-8">
-
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#52B788]">
-                    Ano G / Event Preview
-                  </p>
-
-                  <h2 className="mt-5 text-4xl font-black uppercase leading-[0.85] tracking-[-0.06em] sm:text-5xl">
-                    Creative
-                    <br />
-                    Summit
-                  </h2>
-
-                  <div className="mt-7 flex items-center gap-3 border-t border-white/10 pt-5">
-
-                    <CalendarDays
-                      size={15}
-                      className="text-white/40"
-                    />
-
-                    <p className="text-xs text-white/55">
-                      September 24, 2026
-                    </p>
-
-                  </div>
-
-                  {/* Stats */}
-                  <div className="mt-7 grid grid-cols-3 border-t border-white/10">
-
-                    <div className="border-r border-white/10 py-5">
-                      <p className="text-2xl font-black">
-                        248
-                      </p>
-
-                      <p className="mt-1 text-[8px] font-black uppercase tracking-[0.2em] text-white/35">
-                        Guests
-                      </p>
-                    </div>
-
-                    <div className="border-r border-white/10 px-4 py-5">
-                      <p className="text-2xl font-black">
-                        ₱85K
-                      </p>
-
-                      <p className="mt-1 text-[8px] font-black uppercase tracking-[0.2em] text-white/35">
-                        Budget
-                      </p>
-                    </div>
-
-                    <div className="px-4 py-5">
-                      <p className="text-2xl font-black">
-                        78%
-                      </p>
-
-                      <p className="mt-1 text-[8px] font-black uppercase tracking-[0.2em] text-white/35">
-                        Ready
-                      </p>
-                    </div>
-
-                  </div>
-
-                  {/* Progress */}
-                  <div className="mt-5">
-
-                    <div className="flex justify-between">
-
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">
-                        Preparation
-                      </p>
-
-                      <p className="text-[9px] font-black text-[#52B788]">
-                        78%
-                      </p>
-
-                    </div>
-
-                    <div className="mt-3 h-1 bg-white/10">
-
-                      <div className="h-full w-[78%] bg-[#52B788]" />
-
-                    </div>
-
-                  </div>
-
-                  {/* Activity */}
-                  <div className="mt-7 border-t border-white/10 pt-6">
-
-                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/35">
-                      Latest Activity
-                    </p>
-
-                    <div className="mt-4 space-y-4">
-
-                      <div className="flex items-center gap-3">
-
-                        <CheckCircle2
-                          size={15}
-                          className="text-[#52B788]"
-                        />
-
-                        <p className="text-xs text-white/55">
-                          Registration confirmed
-                        </p>
-
-                        <span className="ml-auto text-[9px] text-white/20">
-                          02m
-                        </span>
-
-                      </div>
-
-                      <div className="flex items-center gap-3">
-
-                        <Ticket
-                          size={15}
-                          className="text-[#52B788]"
-                        />
-
-                        <p className="text-xs text-white/55">
-                          New attendee registered
-                        </p>
-
-                        <span className="ml-auto text-[9px] text-white/20">
-                          08m
-                        </span>
-
-                      </div>
-
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================
-          INTRO / STATEMENT
-      ========================================================= */}
-      <section className="border-b border-[#07140F]/10 bg-white">
-
-        <div className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 md:px-[7vw] md:py-28 lg:px-[8vw] lg:py-36">
-
-          <div className="grid gap-12 lg:grid-cols-[0.25fr_1fr] lg:gap-20">
-
-            {/* Number */}
-            <div className="flex items-start gap-4">
-
-              <span className="text-[11px] font-black tracking-[0.3em] text-[#07140F]/35">
-                01
-              </span>
-
-              <div className="mt-1 h-px w-10 bg-[#07140F]/30" />
-
-            </div>
-
-            {/* Statement */}
-            <div>
-
-              <p className="max-w-6xl text-[clamp(2.4rem,6vw,6.5rem)] font-black uppercase leading-[0.86] tracking-[-0.07em]">
-
-                Less chaos.
-                <br />
-
-                More control.
-                <br />
-
-                <span className="text-[#0D3B2E]/20">
-                  Better events.
-                </span>
-
-              </p>
-
-              <div className="mt-12 grid max-w-4xl gap-8 md:grid-cols-2">
-
-                <p className="text-sm leading-7 text-[#07140F]/55 md:text-base">
-                  Ano G brings the essential parts of event management
-                  together. Instead of moving between different tools,
-                  manage your event workflow from one focused system.
-                </p>
-
-                <p className="text-sm leading-7 text-[#07140F]/55 md:text-base">
-                  From the first registration to the final attendee check,
-                  every module is designed to keep your event organized,
-                  understandable, and ready.
-                </p>
-
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================
-          MODULES
-      ========================================================= */}
-      <section className="relative overflow-hidden bg-[#07140F] text-white">
-
-        {/* Giant Background Number */}
-        <div className="pointer-events-none absolute -right-[3vw] top-[-5vw] select-none text-[28vw] font-black leading-none tracking-[-0.12em] text-white/[0.035]">
-          02
+          <Link
+            to="/events"
+            className="inline-flex items-center gap-2 rounded-full border border-[#C9D9C9] px-5 py-3 text-xs font-black transition hover:bg-[#E8F0E5]"
+          >
+            All Events
+            <ArrowUpRight size={16} />
+          </Link>
         </div>
 
-        <div className="relative mx-auto max-w-[1600px] px-5 py-20 sm:px-8 md:px-[7vw] md:py-28 lg:px-[8vw] lg:py-36">
-
-          <div className="grid gap-14 lg:grid-cols-[0.7fr_1.3fr] lg:gap-24">
-
-            {/* Left Metadata */}
-            <div>
-
-              <div className="mb-6 flex items-center gap-3">
-
-                <span className="h-px w-10 bg-[#52B788]" />
-
-                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">
-                  System Modules
-                </p>
-
-              </div>
-
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/25">
-                Ano G / 02
-              </p>
-
-            </div>
-
-            {/* Right Content */}
-            <div>
-
-              <h2 className="max-w-5xl text-[clamp(3rem,7vw,7rem)] font-black uppercase leading-[0.82] tracking-[-0.08em]">
-
-                Everything
-                <br />
-
-                <span className="text-white/20">
-                  in one place.
-                </span>
-
-              </h2>
-
-              <p className="mt-10 max-w-2xl text-sm leading-7 text-white/45 md:text-base md:leading-8">
-                Four focused modules cover the core workflow of your
-                event management system — from registration and
-                security to budget planning and attendance.
-              </p>
-
-              {/* Module List */}
-              <div className="mt-14 border-t border-white/10">
-
-                {modules.map((module) => {
-                  const Icon = module.icon;
-
-                  return (
-                    <Link
-                      key={module.path}
-                      to={module.path}
-                      className="group grid grid-cols-[55px_1fr_auto] items-center gap-5 border-b border-white/10 py-7 transition-all duration-300 hover:bg-white/[0.025] md:grid-cols-[70px_1fr_1fr_auto]"
-                    >
-
-                      {/* Number */}
-                      <span className="text-[10px] font-black tracking-[0.25em] text-white/25">
-                        {module.number}
-                      </span>
-
-                      {/* Icon + Title */}
-                      <div className="flex items-center gap-4">
-
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-white/10 transition-colors duration-300 group-hover:border-[#52B788]/50">
-
-                          <Icon
-                            size={17}
-                            className="text-[#52B788]"
-                          />
-
-                        </div>
-
-                        <h3 className="text-lg font-black uppercase tracking-[-0.03em] md:text-xl">
-                          {module.title}
-                        </h3>
-
-                      </div>
-
-                      {/* Description */}
-                      <p className="hidden text-xs leading-6 text-white/30 md:block">
-                        {module.description}
-                      </p>
-
-                      {/* Arrow */}
-                      <ArrowUpRight
-                        size={19}
-                        className="text-white/20 transition-all duration-300 group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-[#52B788]"
-                      />
-
-                    </Link>
-                  );
-                })}
-
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================
-          EVENT WORKFLOW
-      ========================================================= */}
-      <section className="border-b border-[#07140F]/10 bg-[#F2F5EF]">
-
-        <div className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 md:px-[7vw] md:py-28 lg:px-[8vw] lg:py-36">
-
-          <div className="grid gap-14 lg:grid-cols-[0.7fr_1.3fr] lg:gap-24">
-
-            {/* Left */}
-            <div>
-
-              <div className="mb-6 flex items-center gap-3">
-
-                <span className="h-px w-10 bg-[#0D3B2E]" />
-
-                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[#07140F]/40">
-                  Workflow
-                </p>
-
-              </div>
-
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#07140F]/25">
-                Ano G / 03
-              </p>
-
-            </div>
-
-            {/* Right */}
-            <div>
-
-              <h2 className="max-w-5xl text-[clamp(3rem,7vw,7rem)] font-black uppercase leading-[0.82] tracking-[-0.08em]">
-
-                From idea
-                <br />
-
-                <span className="text-[#0D3B2E]/20">
-                  to event day.
-                </span>
-
-              </h2>
-
-              <div className="mt-14 grid border-t border-[#07140F]/10 md:grid-cols-3">
-
-                {/* Step 1 */}
-                <div className="border-b border-[#07140F]/10 py-8 md:border-b-0 md:border-r md:px-7 md:first:pl-0">
-
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#07140F]/30">
-                    01 / Start
-                  </p>
-
-                  <h3 className="mt-5 text-xl font-black uppercase tracking-[-0.03em]">
-                    Create
-                  </h3>
-
-                  <p className="mt-3 text-xs leading-6 text-[#07140F]/45">
-                    Define your event and establish the basic
-                    information needed to get started.
-                  </p>
-
-                </div>
-
-                {/* Step 2 */}
-                <div className="border-b border-[#07140F]/10 py-8 md:border-b-0 md:border-r md:px-7">
-
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#07140F]/30">
-                    02 / Manage
-                  </p>
-
-                  <h3 className="mt-5 text-xl font-black uppercase tracking-[-0.03em]">
-                    Organize
-                  </h3>
-
-                  <p className="mt-3 text-xs leading-6 text-[#07140F]/45">
-                    Handle registrations, security checks, budgets,
-                    and attendee information.
-                  </p>
-
-                </div>
-
-                {/* Step 3 */}
-                <div className="py-8 md:px-7 md:pr-0">
-
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#07140F]/30">
-                    03 / Deliver
-                  </p>
-
-                  <h3 className="mt-5 text-xl font-black uppercase tracking-[-0.03em]">
-                    Execute
-                  </h3>
-
-                  <p className="mt-3 text-xs leading-6 text-[#07140F]/45">
-                    Keep track of attendance and make sure everything
-                    is ready for event day.
-                  </p>
-
-                </div>
-
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================
-          FINAL CTA
-      ========================================================= */}
-      <section className="border-b border-white/10 bg-[#0D3B2E] text-white">
-
-        <div className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 md:px-[7vw] md:py-28 lg:px-[8vw] lg:py-36">
-
-          <div className="flex flex-col gap-12 md:flex-row md:items-end md:justify-between">
-
-            <div>
-
-              <p className="mb-6 text-[9px] font-black uppercase tracking-[0.4em] text-[#52B788]">
-                The Ano G Direction
-              </p>
-
-              <h2 className="max-w-5xl text-[clamp(3rem,8vw,8rem)] font-black uppercase leading-[0.8] tracking-[-0.085em]">
-
-                Make it
-                <br />
-
-                organized.
-                <br />
-
-                <span className="text-white/20">
-                  Make it happen.
-                </span>
-
-              </h2>
-
-            </div>
-
-            <div className="max-w-xs md:pb-2">
-
-              <p className="text-[10px] font-black uppercase leading-6 tracking-[0.22em] text-white/35">
-                Ano G
-                <br />
-                Event Management System
-                <br />
-                Since 2026
-              </p>
-
-              <Link
-                to="/registration"
-                className="group mt-7 inline-flex items-center gap-3 border border-white/20 px-5 py-3 text-[9px] font-black uppercase tracking-[0.25em] transition-all duration-300 hover:border-[#52B788] hover:bg-[#52B788] hover:text-[#07140F]"
+        <div className="mt-9 flex flex-wrap gap-2">
+          {CATEGORIES.map(item => {
+            const Icon = item.icon;
+
+            return (
+              <button
+                type="button"
+                key={item.name}
+                onClick={() => {
+                  setCategory(item.name);
+                  setPage(0);
+                }}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-xs font-bold transition ${
+                  category === item.name
+                    ? "border-[#173B2F] bg-[#173B2F] text-white"
+                    : "border-[#DDE7DA] bg-white text-[#617767] hover:border-[#9CBD9F]"
+                }`}
               >
-                Start Managing
+                <Icon size={14} />
+                {item.name}
+              </button>
+            );
+          })}
+        </div>
 
-                <ArrowRight
-                  size={15}
-                  className="transition-transform duration-300 group-hover:translate-x-1"
-                />
-              </Link>
-
+        <div className="mt-8">
+          {loading ? (
+            <div className="grid gap-5 md:grid-cols-3">
+              <GlassSkeleton />
+              <GlassSkeleton />
+              <GlassSkeleton />
             </div>
+          ) : error ? (
+            <div className="rounded-[22px] border border-[#E7D7D0] bg-white p-12 text-center">
+              <p className="font-bold text-[#8C4B3E]">{error}</p>
 
+              <button
+                type="button"
+                onClick={() => setRetry(value => value + 1)}
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#173B2F] px-5 py-3 text-xs font-bold text-white"
+              >
+                <RefreshCw size={14} />
+                Try Again
+              </button>
+            </div>
+          ) : filtered.length > 0 ? (
+            <div className="grid gap-5 md:grid-cols-3">
+              {visible.map((event, index) => (
+                <EventTile
+                  key={event._id}
+                  event={event}
+                  index={page * 3 + index}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[24px] border border-dashed border-[#C9D9C9] bg-white px-6 py-16 text-center">
+              <CalendarDays
+                size={35}
+                className="mx-auto text-[#679575]"
+              />
+
+              <h3 className="mt-4 text-xl font-black">
+                No upcoming events in this category
+              </h3>
+
+              <p className="mt-2 text-sm text-[#7B8B7D]">
+                New published events will show up here.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCategory("All");
+                  setPage(0);
+                }}
+                className="mt-5 text-xs font-black text-[#397B53] underline"
+              >
+                Show All Categories
+              </button>
+            </div>
+          )}
+        </div>
+
+        {!loading && filtered.length > 3 && (
+          <div className="mt-7 flex items-center justify-between">
+            <span className="text-xs font-bold text-[#8A9B8B]">
+              {page + 1} / {pages}
+            </span>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={page === 0}
+                onClick={() => setPage(value => Math.max(0, value - 1))}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D7E1D4] bg-white disabled:opacity-30"
+              >
+                <ChevronLeft size={18} />
+              </button>
+
+              <button
+                type="button"
+                disabled={page >= pages - 1}
+                onClick={() =>
+                  setPage(value => Math.min(pages - 1, value + 1))
+                }
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D7E1D4] bg-white disabled:opacity-30"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* DISCOVER CATEGORIES */}
+      <section className="bg-[#E9EFE5]">
+        <div className="mx-auto grid max-w-[1320px] gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[.8fr_1.2fr] lg:gap-20 lg:py-24">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.23em] text-[#4B9162]">
+              YOUR VIBE / 02
+            </p>
+
+            <h2 className="mt-5 text-4xl font-black leading-[1.05] tracking-[-.065em] sm:text-5xl">
+              Not sure
+              <br />
+              what's <span className="text-[#559C6B]">next?</span>
+            </h2>
+
+            <p className="mt-5 max-w-sm text-sm leading-7 text-[#738876]">
+              Start with what you love. Explore events across music,
+              culture, food, learning, and more.
+            </p>
+
+            <Link
+              to="/events"
+              className="mt-7 inline-flex items-center gap-2 text-xs font-black text-[#27653F]"
+            >
+              Explore the Full Directory
+              <ArrowUpRight size={16} />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {CATEGORIES.filter(item => item.name !== "All")
+              .slice(0, 6)
+              .map((item, index) => {
+                const Icon = item.icon;
+
+                return (
+                  <Link
+                    key={item.name}
+                    to={`/events?category=${encodeURIComponent(item.name)}`}
+                    className={`group flex min-h-[150px] flex-col justify-between rounded-[20px] border p-5 transition hover:-translate-y-1 ${
+                      index === 0
+                        ? "border-[#173B2F] bg-[#173B2F] text-white"
+                        : "border-[#DCE6D8] bg-white text-[#173B2F] hover:border-[#9DC6A6]"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <Icon
+                        size={24}
+                        className={
+                          index === 0
+                            ? "text-[#B9E7BC]"
+                            : "text-[#528D63]"
+                        }
+                      />
+
+                      <ArrowUpRight
+                        size={15}
+                        className={
+                          index === 0
+                            ? "text-white/50"
+                            : "text-[#A1B2A0]"
+                        }
+                      />
+                    </div>
+
+                    <span className="text-sm font-black">
+                      {item.name}
+                    </span>
+                  </Link>
+                );
+              })}
           </div>
         </div>
       </section>
 
+      {/* ORGANIZER SECTION */}
+      <section className="overflow-hidden bg-[#173B2F] text-white">
+        <div className="mx-auto grid max-w-[1320px] items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:gap-20 lg:py-28">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-[.25em] text-[#A3DBB4]">
+              FOR THE PEOPLE WHO MAKE IT HAPPEN / 03
+            </span>
+
+            <h2 className="mt-6 text-5xl font-black leading-[.98] tracking-[-.07em] sm:text-6xl">
+              THE NEXT
+              <br />
+              BIG THING
+              <br />
+              <span className="text-[#A7DDB5]">
+                COULD BE YOURS.
+              </span>
+            </h2>
+
+            <p className="mt-6 max-w-md text-sm leading-8 text-white/60">
+              Have an idea worth gathering people for? Bring it to life
+              with ANO G?'s event creation and management tools.
+            </p>
+
+            <Link
+              to={organizerPath}
+              className="mt-8 inline-flex items-center gap-3 rounded-full bg-[#B9E7BC] px-6 py-4 text-xs font-black text-[#153A2B] transition hover:bg-white"
+            >
+              {organizerLabel}
+              <ArrowUpRight size={17} />
+            </Link>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                number: "01",
+                title: "Build Your Event",
+                description:
+                  "Give your idea a name, date, place, and identity.",
+                icon: CalendarDays
+              },
+              {
+                number: "02",
+                title: "Go Live",
+                description:
+                  "Publish your event for the community to discover.",
+                icon: Sparkles
+              },
+              {
+                number: "03",
+                title: "Stay Organized",
+                description:
+                  "Manage event details from your organizer workspace.",
+                icon: Users
+              },
+              {
+                number: "04",
+                title: "Make It Memorable",
+                description:
+                  "Create experiences people want to be part of.",
+                icon: Ticket
+              }
+            ].map((step, index) => {
+              const Icon = step.icon;
+
+              return (
+                <div
+                  key={step.number}
+                  className={`rounded-[22px] border border-white/10 p-6 backdrop-blur-xl ${
+                    index === 0
+                      ? "bg-white/15"
+                      : "bg-white/[.055]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <Icon size={22} className="text-[#B9E7BC]" />
+
+                    <span className="text-[10px] font-bold text-white/30">
+                      {step.number}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-10 text-lg font-black">
+                    {step.title}
+                  </h3>
+
+                  <p className="mt-3 text-xs leading-6 text-white/50">
+                    {step.description}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="bg-[#F5F5EF]">
+        <div className="mx-auto flex max-w-[1320px] flex-col items-start justify-between gap-7 px-5 py-16 sm:px-8 md:flex-row md:items-center">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.2em] text-[#5C946C]">
+              ANO G? / YOUR NEXT STORY
+            </p>
+
+            <h2 className="mt-3 text-3xl font-black tracking-[-.06em] sm:text-4xl">
+              Less scrolling.{" "}
+              <span className="text-[#559C6B]">
+                More living.
+              </span>
+            </h2>
+          </div>
+
+          <Link
+            to="/events"
+            className="inline-flex items-center gap-2 rounded-full bg-[#173B2F] px-6 py-4 text-xs font-black text-white transition hover:bg-[#285B40]"
+          >
+            Find Your Next Event
+            <ArrowRight size={17} />
+          </Link>
+        </div>
+      </section>
     </div>
   );
-};
-
-export default Home;
+}
